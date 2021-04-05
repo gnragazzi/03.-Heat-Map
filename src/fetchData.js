@@ -1,5 +1,5 @@
 const url =
-  'https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/cyclist-data.json'
+  'https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/global-temperature.json'
 
 const fetchData = async () => {
   const response = await fetch(url)

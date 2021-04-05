@@ -3,35 +3,28 @@ const getXScale = (dataset, w, padding) => {
     .scaleTime()
     .domain([
       new Date(
-        d3.min(dataset, ({ Year }) => {
-          return `${Year - 1}-01-01`
+        d3.min(dataset, ({ year }) => {
+          return `${year}-01-01`
         })
       ),
       new Date(
-        d3.max(dataset, ({ Year }) => {
-          return `${Year + 1}-1-02`
+        d3.max(dataset, ({ year }) => {
+          return `${year}-1-02`
         })
       ),
     ])
     .range([padding, w - padding])
   return xScale
 }
-const getYScale = (dataset, h, padding) => {
-  const minTime = d3.min(dataset, ({ Seconds }) => {
-    return new Date(Seconds * 1000)
-  })
-  const maxTime = d3.max(dataset, ({ Seconds }) => {
-    return new Date(Seconds * 1000)
-  })
-
+const getYScale = (h, padding) => {
   const yScale = d3
-    .scaleTime()
-    .domain([maxTime, minTime])
+    .scaleBand()
+    .domain([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
     .range([h - padding, padding])
   return yScale
 }
 
-const getAxes = (yScale, padding, xScale, h, svg) => {
+const getAxes = (yScale, padding, xScale, h, svg, months) => {
   // X AXIS
 
   const xAxis = d3.axisBottom(xScale)
@@ -42,14 +35,18 @@ const getAxes = (yScale, padding, xScale, h, svg) => {
     .call(xAxis)
 
   // Y AXIS
-  const timeFormat = d3.timeFormat('%M:%S')
+  // const timeFormat = d3.timeFormat('%B')
 
-  const yAxis = d3.axisLeft(yScale).tickFormat(timeFormat)
+  const yAxis = d3.axisLeft(yScale).tickFormat((d) => {
+    return months[d]
+  })
   svg
     .append('g')
     .attr('id', 'y-axis')
     .attr('transform', `translate(${padding}, 0)`)
     .call(yAxis)
+
+  // .ticks(12)
 }
 
 export { getAxes, getXScale, getYScale }

@@ -16,7 +16,7 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -60%);
 }
 .title,
 .subtitle {
@@ -24,8 +24,8 @@ body {
   margin: 0.5rem;
 }
 .vis-container {
-  height: 630px;
-  width: 920px;
+  height: 550px;
+  width: 1500px;
 }
 
 .tooltip {
@@ -35,7 +35,7 @@ body {
   position: absolute;
   transform: translateY(-75%);
   background-color: rgba(255, 255, 255, 0.9);
-  border: 0.2rem solid var(--myPrim);
+  border: 0.1rem solid var(--myPrim);
   /* font-weight: bold; */
   padding: 1rem;
   border-radius: 0.3rem;

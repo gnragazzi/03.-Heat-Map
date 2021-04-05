@@ -1,15 +1,29 @@
 import fetchData from './fetchData.js'
 import { getAxes, getXScale, getYScale } from './scales.js'
+const months = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
 
 const container = document.querySelector('.vis-container')
 const displayVis = async () => {
-  const dataset = await fetchData()
+  const { baseTemperature, monthlyVariance } = await fetchData()
   const h = container.getBoundingClientRect().height
   const w = container.getBoundingClientRect().width
-  const padding = 50
-  const xScale = getXScale(dataset, w, padding)
-  const yScale = getYScale(dataset, h, padding)
-  // console.log(yScale(new Date(2220 * 1000)))
+  const padding = 70
+  const xScale = getXScale(monthlyVariance, w, padding)
+
+  const yScale = getYScale(h, padding)
 
   const svg = d3
     .select(container)
@@ -18,79 +32,127 @@ const displayVis = async () => {
     .attr('width', w)
     .style('border', '0.3rem solid var(--myPrim)')
     .style('border-radius', '0.3rem')
-  // GET AXIS
-  getAxes(yScale, padding, xScale, h, svg)
+  // // GET AXIS
+  getAxes(yScale, padding, xScale, h, svg, months)
 
   // TOOLTIP
   const tooltip = d3
-    .select(container)
+    .select('body')
     .append('div')
     .attr('class', 'tooltip')
     .attr('id', 'tooltip')
     .text('this is a tooltip')
 
   svg
-    .selectAll('circle')
-    .data(dataset)
+    .selectAll('rect')
+    .data(monthlyVariance)
     .enter()
-    .append('circle')
-    .attr('data-xvalue', ({ Year }) => {
-      return new Date(`${Year}-01-01`)
+    .append('rect')
+    .attr('class', 'cell')
+    .attr('data-month', ({ month }) => {
+      return month - 1
     })
-    .attr('data-yvalue', ({ Seconds }) => {
-      const value = new Date(Seconds * 1000)
-      return value
+    .attr('data-year', ({ year }) => {
+      return year
     })
-    .attr('data-place', ({ Place }) => {
-      return Place
+    .attr('data-temp', ({ variance }) => {
+      return variance
     })
-    .attr('class', 'dot')
-    .attr('r', '5')
-    .style('fill', ({ Doping }) => {
-      let color
-      Doping ? (color = '#984447') : (color = '#77BA99')
-      return color
+    .attr('x', ({ year }) => {
+      return xScale(new Date(`${year}-01-01`))
     })
-    .style('stroke', ({ Doping }) => {
-      let color
-      Doping ? (color = '#462021') : (color = '#376D52')
-      return color
+    .attr('y', ({ month }) => {
+      return yScale(month - 1)
     })
-    .attr('cx', ({ Year }) => {
-      return xScale(new Date(`${Year}-01-01`))
-    })
-    .attr('cy', ({ Seconds }) => {
-      const value = yScale(new Date(Seconds * 1000))
-      return value
-    })
+    .attr('width', 5)
+    .attr('height', (h - padding * 2) / 12)
+    // .style('stroke', 'red')
     .on('mouseover', (e) => {
+      e.target.style.stroke = '#7389ae'
       const element = e.target.getBoundingClientRect()
       const tooltip = document.getElementById('tooltip')
-      console.log(element)
-      tooltip.style.left = `${element.x}px`
-      tooltip.style.top = `${element.top}px`
+      tooltip.style.left = `${element.right + 5}px`
+      tooltip.style.top = `${element.bottom}px`
       tooltip.classList.add('active')
-      tooltip.dataset.year = e.target.dataset.xvalue
-      const [{ Doping, Name, Nationality, Time, Year, URL }] = dataset.filter(
-        (racer) => racer.Place === parseInt(e.target.dataset.place)
-      )
-      tooltip.innerHTML = `<h4>${Name}: ${Nationality}</h4><h4>Year: ${Year}, Time: ${Time}</h4><p>${Doping}</p>`
+      const year = e.target.dataset.year
+      tooltip.dataset.year = year
+      const month = e.target.dataset.month
+      const tempVar = e.target.dataset.temp
+      const baseTemp = baseTemperature
+      tooltip.innerHTML = `<h4>${year} - ${months[month]}</h4><p>${parseFloat(
+        baseTemp + parseFloat(tempVar)
+      ).toFixed(2)}°C</p><p>${tempVar > 0 ? '+' : ''}${parseFloat(
+        tempVar
+      ).toFixed(2)}°C</p>`
     })
-    .on('mouseout', () => {
+    .on('mouseout', (e) => {
+      e.target.style.stroke = ''
       const tooltip = document.getElementById('tooltip')
       tooltip.classList.remove('active')
     })
+    .attr('fill', ({ variance }) => {
+      const temp = parseFloat(baseTemperature + parseFloat(variance))
+      if (temp < 4) {
+        return '#4549C4'
+      } else if (temp < 5.5) {
+        return '#43ADEF'
+      } else if (temp < 7) {
+        return '#D6EFFF'
+      } else if (temp < 8.5) {
+        return '#FBBA72'
+      } else if (temp < 10) {
+        return '#FFA047'
+      } else if (temp < 11.5) {
+        return '#E23912'
+      } else {
+        return 'red'
+      }
+    })
+  // const legend = d3
+  //   .select(container)
+  //   .append('g')
+  //   .attr('class', 'legend')
+  //   .attr('id', 'legend')
+  const legendDomain = [4, 5.5, 7, 8.8, 10, 11.5]
   const legend = d3
     .select(container)
-    .append('g')
-    .attr('class', 'legend')
+    .append('svg')
     .attr('id', 'legend')
-  legend.append('g').attr('id', 'legend-g').append('div').attr('id', 'color-1')
+    .attr('height', 50)
+    .attr('width', 250)
 
-  legend.select('#legend-g').append('text').text('Doping Allegations')
-  legend.append('g').attr('id', 'legend-h').append('div').attr('id', 'color-2')
+  const legendScale = d3.scaleBand().domain(legendDomain).range([0, 250])
+  const legendAxis = d3.axisBottom(legendScale).tickFormat((d) => `${d}°C`)
+  legend
+    .append('g')
+    // .attr('id', '')
+    .attr('transform', `translate(0, 30)`)
+    .call(legendAxis)
 
-  legend.select('#legend-h').append('text').text('No Doping Allegations')
+  legend
+    .selectAll('rect')
+    .data(legendDomain)
+    .enter()
+    .append('rect')
+    .attr('height', 30)
+    .attr('width', 250 / legendDomain.length)
+    .attr('x', (d) => legendScale(d))
+    .attr('fill', (d) => {
+      if (d === 4) {
+        return '#4549C4'
+      } else if (d === 5.5) {
+        return '#43ADEF'
+      } else if (d === 7) {
+        return '#D6EFFF'
+      } else if (d === 8.5) {
+        return '#FBBA72'
+      } else if (d === 10) {
+        return '#FFA047'
+      } else if (d === 11.5) {
+        return '#E23912'
+      } else {
+        return 'red'
+      }
+    })
 }
-
 export default displayVis
